@@ -1068,3 +1068,150 @@ async def test_create_manual_activity_exception(app_with_activity_management, mo
     )
     assert "Error" in result[0][0].text
     assert "Garmin API error" in result[0][0].text
+
+
+# ---------------------------------------------------------------------------
+# set_activity_elevation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_set_activity_elevation_tool(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_elevation sends a partial summaryDTO with gain and loss"""
+    mock_garmin_client.garmin_connect_activity = "/activity-service/activity"
+    mock_garmin_client.client.put.return_value = {}
+
+    result = await app_with_activity_management.call_tool(
+        "set_activity_elevation",
+        {"activity_id": 12345678901, "elevation_gain": 66.0, "elevation_loss": 0.0},
+    )
+
+    mock_garmin_client.client.put.assert_called_once_with(
+        "connectapi",
+        "/activity-service/activity/12345678901",
+        json={
+            "activityId": 12345678901,
+            "summaryDTO": {"elevationGain": 66.0, "elevationLoss": 0.0},
+        },
+        api=True,
+    )
+    data = json.loads(result[0][0].text)
+    assert data["success"] is True
+    assert data["elevation_gain"] == 66.0
+    assert data["elevation_loss"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_set_activity_elevation_defaults_loss_to_zero(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_elevation defaults elevation_loss to 0.0"""
+    mock_garmin_client.garmin_connect_activity = "/activity-service/activity"
+    mock_garmin_client.client.put.return_value = {}
+
+    result = await app_with_activity_management.call_tool(
+        "set_activity_elevation",
+        {"activity_id": 12345678901, "elevation_gain": 100.0},
+    )
+
+    call_args = mock_garmin_client.client.put.call_args
+    summary = call_args[1]["json"]["summaryDTO"]
+    assert summary["elevationLoss"] == 0.0
+    data = json.loads(result[0][0].text)
+    assert data["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_set_activity_elevation_rejects_negative(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_elevation rejects negative elevation values"""
+    result = await app_with_activity_management.call_tool(
+        "set_activity_elevation",
+        {"activity_id": 12345678901, "elevation_gain": -10.0},
+    )
+
+    mock_garmin_client.client.put.assert_not_called()
+    assert "non-negative" in result[0][0].text
+
+
+@pytest.mark.asyncio
+async def test_set_activity_elevation_exception(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_elevation returns error string on API failure"""
+    mock_garmin_client.garmin_connect_activity = "/activity-service/activity"
+    mock_garmin_client.client.put.side_effect = Exception("Garmin API error")
+
+    result = await app_with_activity_management.call_tool(
+        "set_activity_elevation",
+        {"activity_id": 12345678901, "elevation_gain": 66.0},
+    )
+
+    assert "Error" in result[0][0].text
+    assert "Garmin API error" in result[0][0].text
+
+
+# ---------------------------------------------------------------------------
+# set_activity_distance
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_set_activity_distance_tool(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_distance sends a partial summaryDTO with distance"""
+    mock_garmin_client.garmin_connect_activity = "/activity-service/activity"
+    mock_garmin_client.client.put.return_value = {}
+
+    result = await app_with_activity_management.call_tool(
+        "set_activity_distance",
+        {"activity_id": 12345678901, "distance_meters": 6310.04},
+    )
+
+    mock_garmin_client.client.put.assert_called_once_with(
+        "connectapi",
+        "/activity-service/activity/12345678901",
+        json={
+            "activityId": 12345678901,
+            "summaryDTO": {"distance": 6310.04},
+        },
+        api=True,
+    )
+    data = json.loads(result[0][0].text)
+    assert data["success"] is True
+    assert data["distance_meters"] == 6310.04
+
+
+@pytest.mark.asyncio
+async def test_set_activity_distance_rejects_negative(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_distance rejects negative distance"""
+    result = await app_with_activity_management.call_tool(
+        "set_activity_distance",
+        {"activity_id": 12345678901, "distance_meters": -100.0},
+    )
+
+    mock_garmin_client.client.put.assert_not_called()
+    assert "non-negative" in result[0][0].text
+
+
+@pytest.mark.asyncio
+async def test_set_activity_distance_exception(
+    app_with_activity_management, mock_garmin_client
+):
+    """Test set_activity_distance returns error string on API failure"""
+    mock_garmin_client.garmin_connect_activity = "/activity-service/activity"
+    mock_garmin_client.client.put.side_effect = Exception("Garmin API error")
+
+    result = await app_with_activity_management.call_tool(
+        "set_activity_distance",
+        {"activity_id": 12345678901, "distance_meters": 5000.0},
+    )
+
+    assert "Error" in result[0][0].text
+    assert "Garmin API error" in result[0][0].text
