@@ -536,6 +536,52 @@ def register_tools(app):
             return f"Error updating activity feel: {str(e)}"
 
     @app.tool()
+    async def set_activity_elevation(
+        activity_id: Union[int, str],
+        elevation_gain: float,
+        elevation_loss: float = 0.0,
+    ) -> str:
+        """Set the elevation (ascent/descent) for an activity.
+
+        Useful for indoor/virtual activities (e.g. Zwift) recorded on a
+        watch that lacks virtual elevation data. Sets the elevation gain
+        (ascent) and elevation loss (descent) in meters on the activity
+        summary.
+
+        Args:
+            activity_id: ID of the activity to update
+            elevation_gain: Elevation gain (ascent) in meters
+            elevation_loss: Elevation loss (descent) in meters (default 0.0)
+        """
+        try:
+            activity_id = int(activity_id)
+            elevation_gain = float(elevation_gain)
+            elevation_loss = float(elevation_loss)
+            if elevation_gain < 0 or elevation_loss < 0:
+                return "Elevation values must be non-negative"
+
+            _update_activity_summary(
+                activity_id,
+                {
+                    "elevationGain": elevation_gain,
+                    "elevationLoss": elevation_loss,
+                },
+            )
+
+            return json.dumps(
+                {
+                    "success": True,
+                    "activity_id": activity_id,
+                    "elevation_gain": elevation_gain,
+                    "elevation_loss": elevation_loss,
+                    "message": "Activity elevation successfully updated",
+                },
+                indent=2,
+            )
+        except Exception as e:
+            return f"Error updating activity elevation: {str(e)}"
+
+    @app.tool()
     async def get_activity_splits(activity_id: Union[int, str]) -> str:
         """Get splits for an activity
 
